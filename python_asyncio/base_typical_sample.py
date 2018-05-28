@@ -239,13 +239,22 @@ def test_multi_tasks():
 
 
 def test_wait_task():
+    '''asyncio wait return is iter object, not result.
+    so the task must return iter object too.
+    if task return result, all restraint not available for this task, for excample: timeout, return_when,...
+
+    asyncio.wait will resturn: done, pending = yield from asyncio.wait(fs)
+
+    asyncio.wait's parameter like: timeout, return_when, is available on iter object, not task's other source.
+    so, if time.sleep(10) in task, and asyncio.wait's timeout=1, it will sleep 10s.
+    '''
+
     @asyncio.coroutine
     def task_1(*args, **kwargs):
         print('task_1 args:%s kwargs:%s' % (str(args), kwargs))
         wait_time = kwargs.get('wait', 0)
         print('sleep: %s' % wait_time)
-        # asyncio.sleep(wait_time)
-        sleep(wait_time)
+        yield from asyncio.sleep(wait_time)
         return {'args': args, 'kwargs': kwargs}
 
     @asyncio.coroutine
@@ -253,8 +262,8 @@ def test_wait_task():
         print('task_1 args:%s kwargs:%s' % (str(args), kwargs))
         wait_time = kwargs.get('wait', 0)
         print('sleep: %s' % wait_time)
-        # asyncio.sleep(wait_time)
-        sleep(wait_time)
+        # raise KeyError('Test first Exception')
+        yield from asyncio.sleep(wait_time)
         return {'args': args, 'kwargs': kwargs}
 
     def cblk(furture):
@@ -263,12 +272,12 @@ def test_wait_task():
 
     multi_task = asyncio.wait(
         [
-            task_1(1, wait=1, name='1'),
             task_1(2, wait=2, name='2'),
             task_2(3, wait=3, name='3'),
             task_2(4, wait=4, name='4'),
+            task_1(1, wait=1, name='1'),
         ],
-        timeout=1,
+        timeout=2,
         return_when=asyncio.FIRST_COMPLETED,
         # return_when=asyncio.FIRST_EXCEPTION,
     )
@@ -277,6 +286,90 @@ def test_wait_task():
     print(result)
 
 
-test_wait_task()
+def test_queue_jobs():
+    queue = asyncio.Queue(maxsize=100)
+    queue.put_nowait('job')
+
+    # # if queue have nothing will raise QueueEmpty
+    # loop.run_until_complete(queue.get_nowait())
+    # # if queue have nothing will wait
+    # loop.run_until_complete(queue.get())
+
+    def cblk(name, furture):
+        print(name, 'callback run success')
+        print('result is :', furture.result())
+
+    def cblk_stop_loop(_loop, fruture, name=None):
+        print(name, 'callback run success')
+        _loop.stop()
+
+    task = asyncio.async(queue.get())
+    task.add_done_callback(partial(cblk, 'test queue'))
+    task.add_done_callback(partial(cblk_stop_loop, loop, name='stop job'))
+    loop.run_until_complete(task)
+
+
+def test_async_socket_server():
+    '''
+    create a asyncio service and test by below:
+
+    (venv) xinx@A11130421040152:~/Work_Space/python/python3_tools$ telnet 127.0.0.1 9000
+    Trying 127.0.0.1...
+    Connected to 127.0.0.1.
+    Escape character is '^]'.
+    Welcome
+    ADD 1 2 3 4 4
+    14
+    Shutdown
+    By, Service shutdown.
+    Connection closed by foreign host.
+    '''
+
+    class Shutdown(Exception):
+        pass
+
+    # Protocol use to receive the socket data whick open by create_server function.
+    class ServerProtocol(asyncio.Protocol):
+
+        def connection_made(self, transport):
+            self.transport = transport
+            self.write('Welcome')
+
+        def data_received(self, data):
+            if not data:
+                return
+            # socket data is ascii, ascii -> string must use decode
+            message = data.decode('ascii')
+            command = message.strip().split(' ')[0].lower()
+            args = message.strip().split(' ')[1:]
+            if not hasattr(self, 'command_%s' % command):
+                self.write('Invalid command: %s' % command)
+            try:
+                return getattr(self, 'command_%s' % command)(*args)
+            except Exception as ex:
+                self.write('Error: %s\n' % str(ex))
+
+        def write(self, msg_string):
+            msg_string += '\n'
+            self.transport.write(msg_string.encode('ascii', 'ignore'))
+
+        def command_add(self, *args):
+            _args = [int(i) for i in args]
+            self.write('%s' % sum(_args))
+
+        def command_shutdown(self):
+            self.write('By, Service shutdown.')
+            raise KeyboardInterrupt
+
+    # create server
+    service = loop.create_server(ServerProtocol, '127.0.0.1', 9000)
+    asyncio.async(service)
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt as ex:
+        pass
+
+
+test_async_socket_server()
 
 print('successful!')
