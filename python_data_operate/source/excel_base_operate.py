@@ -5,6 +5,7 @@ from pprint import pprint
 
 excel_file = '../datas/from intranet.xls'
 
+
 def base_read():
     book = xlrd.open_workbook(excel_file)
     # iter sheet
@@ -25,11 +26,6 @@ def dir_sheet():
     book = xlrd.open_workbook(excel_file)
     sheet = book.sheet_by_name('bauck_1')
     pprint(dir(sheet))
-
-
-
-
-
 
 
 base_read()

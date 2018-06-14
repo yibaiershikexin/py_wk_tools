@@ -20,16 +20,22 @@ def test_dictreader():
         print(row)
 
 
+def test_write_csv():
+    from csv import writer
+
+    title = ['No', 'name', 'size']
+    recoders = ['1', 'b', 2]
+    f_path = './tmp.csv'
+    with open(f_path, 'w') as obj_f:
+        csv_writer = csv.writer(obj_f)
+        csv_writer.writerow(title)
+        csv_writer.writerow(recoders)
+        csv_writer.writerow(recoders)
 
 
+def main():
+    # test_dictreader()
+    test_write_csv()
 
 
-
-
-
-
-
-
-
-
-test_dictreader()
+main()

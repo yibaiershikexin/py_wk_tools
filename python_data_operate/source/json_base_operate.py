@@ -10,7 +10,4 @@ def test_base():
     pprint(datas)
 
 
-
-
-
 test_base()

@@ -3,6 +3,7 @@ from pprint import pprint
 
 xml_file = '../datas/data.xml'
 
+
 # pprint(open(xml_file).read())
 
 def base_usage():
@@ -14,8 +15,6 @@ def base_usage():
         for items in fact:
             print(items, ':', items.text)
             print('items attr', items.attrib)
-
-
 
 
 base_usage()
