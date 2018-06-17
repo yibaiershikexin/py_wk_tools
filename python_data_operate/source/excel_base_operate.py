@@ -28,4 +28,21 @@ def dir_sheet():
     pprint(dir(sheet))
 
 
+def xlrd_get_xls_property():
+    import xlrd
+    from xlrd.sheet import ctype_text
+
+    # {0: 'empty', 1: 'text', 2: 'number', 3: 'xldate', 4: 'bool', 5: 'error', 6: 'blank'}
+    print(ctype_text)
+
+    workbook = xlrd.open_workbook('data.xls')
+    sheet_0 = workbook.sheets()[0]
+    title = sheet_0.row_values(0, start_colx=0, end_colx=None)
+    row = sheet_0.row_values(6, start_colx=0, end_colx=None)
+    print(row)
+    print(sheet_0.row(6))
+    print(sheet_0.row(6)[0].ctype)
+    print(sheet_0.row(6)[0].value)
+
+
 base_read()
