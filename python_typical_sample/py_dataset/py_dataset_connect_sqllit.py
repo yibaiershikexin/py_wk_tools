@@ -16,6 +16,8 @@ my_data_source = {
     'interest': 'book',
 }
 
+my_data_rows = [my_data_source, my_data_source]
+
 
 def create_table_insert_datas(table_name, table_datas):
     obj_table = create_table(table_name)
@@ -29,6 +31,7 @@ def create_table(table_name):
 
 def insert_datas(obj_table, table_datas):
     obj_table.insert(table_datas)
+    obj_table.insert_many(my_data_rows)
 
 
 def get_all_datas(table_name):
